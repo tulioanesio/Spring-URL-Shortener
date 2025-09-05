@@ -1,0 +1,5 @@
+spring.application.name=Spring-URL-Shortener
+
+aws.dynamodb.region=your_aws_region
+aws.dynamodb.accessKeyId=your_access_key_id
+aws.dynamodb.secretKey=your_secret_key
