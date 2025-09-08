@@ -34,7 +34,7 @@ public class ShortenerController {
         dynamoDbTemplate.save(newShortener);
 
         String fullShortUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/{shortCode}")
+                .path("/dev/{shortCode}")
                 .buildAndExpand(shortCode)
                 .toUriString();
 
