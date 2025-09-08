@@ -3,14 +3,14 @@ package com.tulioanesio.Spring_URL_Shortener.controller;
 import com.tulioanesio.Spring_URL_Shortener.dtos.ShortenerUrlRequest;
 import com.tulioanesio.Spring_URL_Shortener.dtos.ShortenerUrlResponse;
 import com.tulioanesio.Spring_URL_Shortener.models.Shortener;
-import io.awspring.cloud.dynamodb.DynamoDbTemplate;
+import com.tulioanesio.Spring_URL_Shortener.services.ShortenerService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import software.amazon.awssdk.enhanced.dynamodb.Key;
+
 
 import java.net.URI;
 
@@ -18,24 +18,20 @@ import java.net.URI;
 @RequestMapping
 public class ShortenerController {
 
-    private final DynamoDbTemplate dynamoDbTemplate;
+    private final ShortenerService shortenerService;
 
-    public ShortenerController(DynamoDbTemplate dynamoDbTemplate) {
-        this.dynamoDbTemplate = dynamoDbTemplate;
+    public ShortenerController(ShortenerService shortenerService) {
+        this.shortenerService = shortenerService;
     }
 
     @PostMapping("/shorten")
-    public ResponseEntity<ShortenerUrlResponse> createShortUrl(@RequestBody @Valid ShortenerUrlRequest request) {
+    public ResponseEntity<ShortenerUrlResponse> createShortUrl(@RequestBody @Valid ShortenerUrlRequest request, HttpServletRequest servletRequest) {
 
-        String shortCode = RandomStringUtils.randomAlphanumeric(6);
+        Shortener newShortener = shortenerService.createAndSaveShortUrl(request.originalUrl());
 
-        Shortener newShortener = new Shortener(shortCode, request.originalUrl());
-
-        dynamoDbTemplate.save(newShortener);
-
-        String fullShortUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+        String fullShortUrl = ServletUriComponentsBuilder.fromContextPath(servletRequest)
                 .path("/dev/{shortCode}")
-                .buildAndExpand(shortCode)
+                .buildAndExpand(newShortener.getShortUrl())
                 .toUriString();
 
         var response = new ShortenerUrlResponse(request.originalUrl(), fullShortUrl);
@@ -43,17 +39,11 @@ public class ShortenerController {
     }
 
     @GetMapping("/{shortCode}")
-    public ResponseEntity<Void> redirect(@PathVariable String shortCode) {
-        Key key = Key.builder().partitionValue(shortCode).build();
-
-        Shortener foundShortener = dynamoDbTemplate.load(key, Shortener.class);
-
-        if (foundShortener != null) {
-            return ResponseEntity.status(HttpStatus.FOUND)
-                    .location(URI.create(foundShortener.getOriginalUrl()))
-                    .build();
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Object> redirect(@PathVariable String shortCode) {
+        return shortenerService.findOriginalUrlByShortCode(shortCode)
+                .map(shortener -> ResponseEntity.status(HttpStatus.FOUND)
+                        .location(URI.create(shortener.getOriginalUrl()))
+                        .build())
+                        .orElse(ResponseEntity.notFound().build());
     }
 }
