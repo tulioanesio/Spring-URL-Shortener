@@ -13,15 +13,6 @@ A 100% serverless, high-performance URL shortening service built with Spring Boo
 -   AWS API Gateway
 -   Swagger
 
-## How to test it
-
-You can test the application by doing a POST requisition to `https://3awcwd1i7d.execute-api.sa-east-1.amazonaws.com/dev/shorten`, using API testing tools like Postman or Insomnia, with the JSON body:
-```
-{
-  "originalUrl": "https://www.google.com/"
-}
-```
-
 ## Running the Application
 
 1.  **Clone the repository:**
